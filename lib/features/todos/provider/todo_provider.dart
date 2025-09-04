@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/todo_model.dart';
 import '../data/todo_repository.dart';
+import '../../../core/services/notification_service.dart';
 
 class TodoProvider extends ChangeNotifier {
   final TodoRepository _repository = TodoRepository();
@@ -43,6 +44,8 @@ class TodoProvider extends ChangeNotifier {
     
     try {
       _todos = await _repository.getTodos(userId);
+      // Update notification service with new todos
+      NotificationService().updateTodos(_todos);
       notifyListeners();
     } catch (e) {
       _setError(e.toString());
@@ -59,6 +62,8 @@ class TodoProvider extends ChangeNotifier {
     try {
       final newTodo = await _repository.createTodo(todo);
       _todos.insert(0, newTodo);
+      // Update notification service with new todos
+      NotificationService().updateTodos(_todos);
       notifyListeners();
       return true;
     } catch (e) {
@@ -79,6 +84,8 @@ class TodoProvider extends ChangeNotifier {
       final index = _todos.indexWhere((t) => t.id == todo.id);
       if (index != -1) {
         _todos[index] = updatedTodo;
+        // Update notification service with updated todos
+        NotificationService().updateTodos(_todos);
         notifyListeners();
       }
       return true;
@@ -98,6 +105,8 @@ class TodoProvider extends ChangeNotifier {
     try {
       await _repository.deleteTodo(todoId, userId);
       _todos.removeWhere((todo) => todo.id == todoId);
+      // Update notification service with updated todos
+      NotificationService().updateTodos(_todos);
       notifyListeners();
       return true;
     } catch (e) {
@@ -117,6 +126,8 @@ class TodoProvider extends ChangeNotifier {
       final index = _todos.indexWhere((t) => t.id == todoId);
       if (index != -1) {
         _todos[index] = updatedTodo;
+        // Update notification service with updated todos
+        NotificationService().updateTodos(_todos);
         notifyListeners();
       }
       return true;
