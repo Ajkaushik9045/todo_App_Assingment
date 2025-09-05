@@ -205,8 +205,17 @@ class _TodoListScreenState extends State<TodoListScreen>
   }
 
   Widget _buildTodoCard(TodoModel todo) {
-    final isOverdue = !todo.isCompleted && todo.deadline.isBefore(DateTime.now());
-    final timeUntilDeadline = todo.deadline.difference(DateTime.now());
+    final now = DateTime.now();
+     final localDeadline = todo.deadline.toLocal(); 
+     final isOverdue = !todo.isCompleted && localDeadline.isBefore(now);
+    final timeUntilDeadline = localDeadline.difference(now);
+    
+    // Debug print for time calculation
+    print('🕐 Todo: ${todo.title}');
+    print('🕐 Current time: $now');
+    print('🕐 Deadline: ${todo.deadline}');
+    print('🕐 Time until deadline: ${timeUntilDeadline.inHours}h ${timeUntilDeadline.inMinutes % 60}m');
+    print('🕐 Is overdue: $isOverdue');
     
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -319,7 +328,7 @@ class _TodoListScreenState extends State<TodoListScreen>
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      '${todo.deadline.day}/${todo.deadline.month}/${todo.deadline.year} at ${todo.deadline.hour.toString().padLeft(2, '0')}:${todo.deadline.minute.toString().padLeft(2, '0')}',
+                       '${localDeadline.day}/${localDeadline.month}/${localDeadline.year} at ${localDeadline.hour.toString().padLeft(2, '0')}:${localDeadline.minute.toString().padLeft(2, '0')}',
                       style: TextStyle(
                         fontSize: 12,
                         color: isOverdue ? Colors.red : Colors.grey[600],
@@ -356,21 +365,35 @@ class _TodoListScreenState extends State<TodoListScreen>
     if (todo.isCompleted) return Colors.green;
     if (isOverdue) return Colors.red;
     
-    final timeUntilDeadline = todo.deadline.difference(DateTime.now());
-    if (timeUntilDeadline.inHours < 24) return Colors.orange;
-    return AppColors.primary;
+   final localDeadline = todo.deadline.toLocal(); // ✅ Convert to local
+  final timeUntilDeadline = localDeadline.difference(DateTime.now()); // ✅ Use local times
+  if (timeUntilDeadline.inHours < 24) return Colors.orange;
+  return AppColors.primary;
   }
 
   String _getStatusText(TodoModel todo, bool isOverdue, Duration timeUntilDeadline) {
     if (todo.isCompleted) return 'COMPLETED';
     if (isOverdue) return 'OVERDUE';
     
-    if (timeUntilDeadline.inDays > 0) {
-      return '${timeUntilDeadline.inDays}d left';
-    } else if (timeUntilDeadline.inHours > 0) {
-      return '${timeUntilDeadline.inHours}h left';
+    // Handle negative durations (overdue but not caught by isOverdue check)
+    if (timeUntilDeadline.isNegative) {
+      return 'OVERDUE';
+    }
+    
+    final totalHours = timeUntilDeadline.inHours;
+    final totalMinutes = timeUntilDeadline.inMinutes;
+    final days = timeUntilDeadline.inDays;
+    final hours = totalHours % 24;
+    final minutes = totalMinutes % 60;
+    
+    if (days > 0) {
+      return '${days}d ${hours}h left';
+    } else if (totalHours > 0) {
+      return '${totalHours}h ${minutes}m left';
+    } else if (totalMinutes > 0) {
+      return '${totalMinutes}m left';
     } else {
-      return '${timeUntilDeadline.inMinutes}m left';
+      return 'Due now';
     }
   }
 }

@@ -22,7 +22,7 @@ class AuthProvider extends ChangeNotifier {
       authState,
     ) {
       print('Auth state changed: ${authState.event}');
-      print('User: ${authState.session?.user?.email ?? 'No user'}');
+      print('User: ${authState.session?.user.email ?? 'No user'}');
 
       // Update user whenever session changes
       final newUser = authState.session?.user;

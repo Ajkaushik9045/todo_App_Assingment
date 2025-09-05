@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:todo_app/features/auth/presentation/splash_screen.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../auth/provider/auth_provider.dart';
 import 'todo_list_screen.dart';

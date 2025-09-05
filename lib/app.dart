@@ -10,17 +10,30 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('🎯 MyApp: Building app widget...');
+    
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => TodoProvider()),
+        ChangeNotifierProvider(create: (_) {
+          print('🔐 Creating AuthProvider...');
+          return AuthProvider();
+        }),
+        ChangeNotifierProvider(create: (_) {
+          print('📝 Creating TodoProvider...');
+          return TodoProvider();
+        }),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Todo Reminder App',
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
-        home: const AuthWrapper(),
+        home: Builder(
+          builder: (context) {
+            print('🏠 Building AuthWrapper...');
+            return const AuthWrapper();
+          },
+        ),
       ),
     );
   }

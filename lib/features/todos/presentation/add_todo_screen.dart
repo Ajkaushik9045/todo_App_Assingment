@@ -28,7 +28,7 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
     if (widget.todoToEdit != null) {
       _titleController.text = widget.todoToEdit!.title;
       _descriptionController.text = widget.todoToEdit!.description;
-      _selectedDeadline = widget.todoToEdit!.deadline;
+      _selectedDeadline = widget.todoToEdit!.deadline.toLocal(); 
     }
   }
 
@@ -128,14 +128,14 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
       setState(() => _isLoading = false);
       return;
     }
-
+final deadlineUTC = _selectedDeadline!.toUtc();
     bool success;
     if (widget.todoToEdit != null) {
       // Update existing todo
       final updatedTodo = widget.todoToEdit!.copyWith(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
-        deadline: _selectedDeadline!,
+        deadline: deadlineUTC,
       );
       success = await todoProvider.updateTodo(updatedTodo);
     } else {
@@ -143,7 +143,7 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
       final newTodo = TodoModel(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
-        deadline: _selectedDeadline!,
+        deadline: deadlineUTC,
         userId: userId,
       );
       success = await todoProvider.createTodo(newTodo);

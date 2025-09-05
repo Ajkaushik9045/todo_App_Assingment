@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -12,32 +13,66 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  // FIXED: Declare the FirebaseMessaging field
+  late final FirebaseMessaging _firebaseMessaging;
   
+  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   Timer? _notificationTimer;
   List<TodoModel> _todos = [];
+  bool _isFirebaseInitialized = false;
 
   Future<void> initialize() async {
-    // Initialize Firebase
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    print('🔔 NotificationService: Starting initialization...');
+    
+    if (!_isPlatformSupported()) {
+      print('⚠️ NotificationService: Firebase not supported on this platform, using local notifications only');
+      await _initializeLocalNotifications();
+      return;
+    }
 
-    // Request notification permissions
-    await _requestPermissions();
+    try {
+      print('🔔 NotificationService: Initializing Firebase...');
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      print('✅ NotificationService: Firebase initialized');
 
-    // Initialize local notifications
-    await _initializeLocalNotifications();
+      // FIXED: Initialize the FirebaseMessaging instance
+      _firebaseMessaging = FirebaseMessaging.instance;
 
-    // Get FCM token
-    await _getFCMToken();
+      print('🔔 NotificationService: Requesting permissions...');
+      await _requestPermissions();
 
-    // Handle background messages
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      print('🔔 NotificationService: Initializing local notifications...');
+      await _initializeLocalNotifications();
 
-    // Handle foreground messages
-    FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+      print('🔔 NotificationService: Getting FCM token...');
+      await _getFCMToken();
+
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+      
+      print('✅ NotificationService: Full initialization completed');
+    } catch (e) {
+      print('❌ NotificationService: Firebase initialization failed: $e');
+      print('🔔 NotificationService: Falling back to local notifications only');
+      await _initializeLocalNotifications();
+    }
+  }
+
+  Future<void> initializeAsync() async {
+    try {
+      await initialize();
+    } catch (e) {
+      print('❌ NotificationService: Async initialization failed: $e');
+    }
+  }
+
+  bool _isPlatformSupported() {
+    if (Platform.isLinux) {
+      return false;
+    }
+    return true;
   }
 
   Future<void> _requestPermissions() async {
@@ -99,12 +134,10 @@ class NotificationService {
   void _scheduleNotificationCheck() {
     _notificationTimer?.cancel();
     
-    // Check every minute for todos that need notifications
     _notificationTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       _checkAndSendNotifications();
     });
     
-    // Also check immediately
     _checkAndSendNotifications();
   }
 
@@ -115,7 +148,6 @@ class NotificationService {
       if (!todo.isCompleted) {
         final timeUntilDeadline = todo.deadline.difference(now);
         
-        // Send notification if exactly 1 hour before deadline (within 1-minute window)
         if (timeUntilDeadline.inMinutes >= 59 && timeUntilDeadline.inMinutes <= 61) {
           _sendLocalNotification(todo);
         }
@@ -168,7 +200,6 @@ class NotificationService {
   }
 }
 
-// Background message handler
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
